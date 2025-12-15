@@ -77,7 +77,6 @@
 ## 데이터 준비
 
 1. DACON 대회 페이지에서 데이터 다운로드
-- https://dacon.io/competitions/official/236473/data
 2. 아래 구조로 로컬/Colab에 배치
 ```
 data/
@@ -86,20 +85,63 @@ data/
   sample_submission.csv
 ```
 
-주의: 대회 데이터는 재배포하지 않습니다(이 저장소에는 포함하지 않음).
+자세한 내용은 [data/README.md](data/README.md) 참고.
 
 ## 실행 방법 (Colab 권장)
 1. notebooks/02_Attention-MIL_LoRA6_Final.ipynb 실행
 2. 실행 결과로 submission.csv가 생성됩니다.
 3. 생성된 submission.csv를 DACON에 제출합니다.
 
-## 실험 변천사
-- Baseline: TF-IDF + XGB
-- MIL(Attention): 문서=bag / 문단=instance + attention pooling
-- MIL + LoRA: 효율 튜닝 및 안정화
-- Final: LSE(τ=12) + top-k aux + hard-positive + pos_weight/ASL
+## 모델 가중치(LoRA Adapter)
 
-## 트러블슈팅
+본 저장소에는 가중치를 커밋하지 않습니다.
+
+
+[models/README.md](models/README.md)에서 다운로드 링크와 배치 방법 확인
+
+## 실행 방법 (빠른 재현)
+
+### 1) 추론만(권장)
+
+- notebooks/03_Inference.ipynb 실행
+- 출력: submission.csv
+
+### 2) 전체 파이프라인(학습 포함)
+
+- notebooks/02_Attention-MIL_LoRA6_Final.ipynb 실행
+- 출력: submission.csv
+
+## 핵심 접근(요약)
+### 문제 정의
+
+- Input: paragraph_text
+- Output: P(AI-generated | paragraph) in [0, 1]
+- 제약: Train은 문서 라벨만 제공(문단 GT 없음) / Test는 문단 단위 확률 제출
+
+### MIL 설계
+
+- Document = Bag, Paragraph = Instance
+- 문단 로짓 s_i → pooling으로 문서 로짓 S 구성 → 문서 라벨로 학습
+- Inference: sigmoid(s_i)를 문단 확률로 사용
+
+### 최종 적용 테크닉(하이퍼파라미터)
+
+- LogSumExp Pooling: LSE_TAU = 12.0
+- Instance Auxiliary Loss: INST_TOPK = 2, INST_LAMBDA = 0.15
+- Hard-positive Cache: HARD_CACHE_TOPK = 2
+- LoRA: r=8, lora_alpha=16, lora_dropout=0.1, target_modules=["query","value"]
+- Training: MAX_LEN=192, TRAIN_PARAS_PER_DOC=12, BATCH_BAGS=8
+- imbalance: POS_WEIGHT = (num_neg/num_pos) * 1.3
+- Asymmetric focal: GAMMA_POS=0.0, GAMMA_NEG=2.0
+- OOM 방지: VAL_BATCH1 = True
+
+## 트러블슈팅(운영 관점)
+
 - 문단 확률이 0.5 근처로 몰림 → LSE + top-k aux로 로짓 분리 강화
-- 양성 문서에서 증거 문단 누락 → hard-positive 캐시로 항상 포함
-- OOM/검증 불안정 → MAX_LEN, VAL_BATCH1 등 정책으로 안정화
+- 양성 문서에서 증거 문단 누락 → hard-positive 캐시로 노출 빈도 확보
+- 검증 OOM/불안정 → MAX_LEN, VAL_BATCH1 등 정책으로 안정화
+
+## Links
+
+- Competition: https://dacon.io/competitions/official/236473/overview/description
+- Model Weights (Drive): models/README.md 참고

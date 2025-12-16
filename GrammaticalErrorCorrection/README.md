@@ -1,6 +1,6 @@
-# GEC: 영어 문법/오타 자동 교정 (Gradio Demo)
+# GEC: 영어 문법/오타 자동 교정
 
-영어 문장 내 문법 오류/오타를 자동 교정하고, 수정 구간을 하이라이트로 보여주는 GEC(Grammatical Error Correction) 데모 프로젝트입니다.  
+영어 문장 내 문법 오류/오타를 자동 교정하고, 수정 구간을 하이라이트로 보여주는 GEC(Grammatical Error Correction) 프로젝트입니다.  
 **2,000,000 sentence-pair** 규모 데이터 기반으로 모델을 학습하고, **F0.5(precision 가중)** 지표로 성능을 검증했습니다.
 
 - Code Repository: https://github.com/horaeng1/GEC
